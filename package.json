@@ -1,0 +1,24 @@
+{
+  "name": "axios-api",
+  "version": "1.0.0",
+  "description": "Api request structured tool builder.",
+  "main": "dist/axios-api.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/no-996/axios-api.git"
+  },
+  "keywords": [
+    "axios-api",
+    "axios",
+    "api"
+  ],
+  "author": "no-996",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/no-996/axios-api/issues"
+  },
+  "homepage": "https://github.com/no-996/axios-api#readme"
+}
