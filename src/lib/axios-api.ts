@@ -105,7 +105,10 @@ class ApiModule {
       parseURL: options.parseURL || false,
       children: options.children || [],
     }
+    // 此处需要逻辑封装，实现ApiModuleOptions中定义的功能，如：
+    // TODO: cancel、cache、parseURL、metadata.type、metadata.required，甚至metadata.validator
     this[AxiosInstanceSymbol] = axios.create(config || {})
+    //
     const optionsCopy = this[OptionsSymbol]
     if (optionsCopy.children) {
       const keys = Object.keys(this).concat([
