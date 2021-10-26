@@ -102,3 +102,7 @@ dist
 
 # TernJS port file
 .tern-port
+
+./src/api/index.d.ts
+
+./src/api/config/package.json

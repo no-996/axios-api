@@ -1,12 +1,14 @@
 import Vue from 'vue'
 import App from '@/App.vue'
 
+import instance from './api'
+
 /**
  * 开发调试console
  * @param {string} msg
  * @param {object} option {color:string,fontSize:number,filename:string,detail:any}
  */
-Vue.prototype.log = (msg = '', option = {}) => {
+Vue.prototype.$log = (msg = '', option = {}) => {
   if (process.env.NODE_ENV === 'development') {
     let opts = {
       ...{
@@ -40,6 +42,8 @@ Vue.prototype.log = (msg = '', option = {}) => {
     }
   }
 }
+
+Vue.prototype.$api = instance
 
 new Vue({
   el: '#app',

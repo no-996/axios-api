@@ -5,7 +5,7 @@ export default {
       {
         name: 'human',
         des: '人类',
-        url: '/1',
+        url: '/posts/1',
         data: {
           a: '1',
           b: 2,
@@ -80,7 +80,7 @@ export default {
       },
       {
         name: 'annimal',
-        url: '/2',
+        url: '/posts/2',
         data: {
           x: [1, 2],
           y: [
@@ -123,26 +123,26 @@ export default {
               {
                 name: 'golden',
                 des: '金毛',
-                url: '/3',
+                url: '/posts/3',
               },
               {
                 name: 'teddy',
                 des: '泰迪',
-                url: '/4',
+                url: '/posts/4',
               },
             ],
           },
           {
             name: 'cat',
             des: '猫',
-            url: '/5',
+            url: '/posts/5',
           },
         ],
       },
       {
         name: 'strRequired',
         des: 'str required',
-        url: '/',
+        url: '/posts/6',
         data: '',
         metadata: {
           data: {
@@ -156,7 +156,7 @@ export default {
       {
         name: 'strArray',
         des: 'str array',
-        url: '/',
+        url: '/posts/7',
         data: [],
         metadata: {
           data: {
@@ -170,7 +170,7 @@ export default {
       {
         name: 'objRequired',
         des: 'obj required',
-        url: '/',
+        url: '/posts/8',
         data: {
           a: 9,
         },

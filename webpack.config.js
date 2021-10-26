@@ -180,7 +180,7 @@ if (['production', 'analyzer'].includes(process.env.NODE_ENV)) {
   // module.exports.devtool = '#source-map'
 
   let entry = {
-    AxiosApi: './src/lib/index.js',
+    ['axios-api']: './src/lib/axios-api.js',
   }
 
   module.exports.entry = entry
@@ -204,7 +204,7 @@ if (['production', 'analyzer'].includes(process.env.NODE_ENV)) {
       esModule: true,
     }),
   ])
-  module.exports.optimization.minimize = false
+  module.exports.optimization.minimize = true
   ;(module.exports.optimization.minimizer = [
     new TerserPlugin({
       extractComments: false,
