@@ -1,9 +1,9 @@
 import { ApiModule } from '../lib/axios-api'
 
-import config from './config'
+import options from './options'
 
-console.log(JSON.stringify(config, null, 2))
+console.log(JSON.stringify(options, null, 2))
 
-export default new ApiModule(config, {
+export default new ApiModule(options, {
   baseURL: 'https://jsonplaceholder.typicode.com',
 })

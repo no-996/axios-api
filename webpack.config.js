@@ -89,7 +89,7 @@ module.exports = {
       {
         test: /\.js$/,
         loader: 'babel-loader',
-        options: {},
+        options: { plugins: ['@babel/plugin-proposal-optional-chaining'] },
         include: [/src/],
       },
       {
