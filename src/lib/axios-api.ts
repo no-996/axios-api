@@ -61,20 +61,32 @@ interface ApiModuleOptions extends AxiosRequestConfig {
 }
 
 /**
- * 取消用唯一码记录 / Cancel key records
+ * 取消记录 / Cancel records
  */
-interface CancelKeyRecord {
+interface CancelRecord {
+  id: string
   // 取消用唯一码 / Cancel key
   key: string
   source: CancelTokenSource
+}
+
+/**
+ * 缓存记录 / Cache records
+ */
+interface CacheRecord {
   id: string
+  // 缓存唯一码 / Cache key
+  key: string
+  data?: any
+  expires: number
 }
 
 const OptionsSymbol = Symbol('options')
 const AxiosInstanceSymbol = Symbol('axiosInstance')
 const OptionsPath = Symbol('optionsPath')
 const CancelKey = Symbol('cancelKey')
-const CancelKeyRecords = Symbol('CancelKeyRecords')
+const CancelRecords = Symbol('CancelRecords')
+const CacheRecords = Symbol('CacheRecords')
 const CancelToken = axios.CancelToken
 // 生成路径
 function parseNamePath(option: ApiModuleOptions): string {
@@ -112,7 +124,11 @@ class ApiModule {
   /**
    * 取消用唯一码记录 / Cancel key records
    */
-  readonly [CancelKeyRecords]: Array<CancelKeyRecord>;
+  readonly [CancelRecords]: Array<CancelRecord>;
+  /**
+   * 缓存记录 / Cache records
+   */
+  readonly [CacheRecords]: Array<CacheRecord>;
   /**
    * Axios 实例 / Axios instance
    */
@@ -138,49 +154,106 @@ class ApiModule {
       const id = uuid()
       console.log(`%crequest / %c${this[OptionsPath]} / %c${id}`, 'color:blue', 'color:orange', 'color:purple')
 
-      this[AxiosInstanceSymbol].request({
-        ...optionsMix,
-        cancelToken: source.token,
-      })
-        .then((res) => {
-          let index = this[CancelKeyRecords].findIndex((o) => o.id === id)
-          if (index > -1) {
-            this[CancelKeyRecords].splice(index, 1)
-          }
+      let cacheKey = ''
+      let cacheRecord = null
 
-          console.log(`%csuccess / %c${this[OptionsPath]} / %c${id}`, 'color:green', 'color:orange', 'color:purple')
-          resolve(res)
-        })
-        .catch((e) => {
-          // if (!axios.isCancel(e)) {
-          // }
-          let index = this[CancelKeyRecords].findIndex((o) => o.id === id)
-          if (index > -1) {
-            this[CancelKeyRecords].splice(index, 1)
-          }
-
-          console.log(`%cfail / %c${this[OptionsPath]} / %c${id}`, 'color:red', 'color:orange', 'color:purple')
-          reject(e)
-        })
-      if (optionsMix.cancel) {
-        // 开启cancel功能
-        if (optionsMix.cancel === 'current') {
-          // 取消当前的
-          if (this[CancelKeyRecords].findIndex((o) => o.key === this[CancelKey]) > -1) {
-            source.cancel(`${this[OptionsPath]} / ${id}`)
-          } else {
-            this[CancelKeyRecords].push({ key: this[CancelKey], source, id })
-          }
-        } else if (optionsMix.cancel === 'previous') {
-          // 取消之前的
-          let exists = this[CancelKeyRecords].filter((o) => o.key === this[CancelKey])
-          exists.forEach((o) => {
-            o.source.cancel(`${this[OptionsPath]} / ${id}`)
-            // 移除记录
-            let index = this[CancelKeyRecords].findIndex((t) => t.key === o.key)
-            this[CancelKeyRecords].splice(index, 1)
+      try {
+        cacheKey = md5(
+          JSON.stringify({
+            url: optionsMix.url,
+            baseURL: optionsMix.baseURL,
+            method: optionsMix.method,
+            headers: optionsMix.headers,
+            data: optionsMix.data,
+            params: optionsMix.params,
+            auth: optionsMix.auth,
+            //
+            name: optionsMix.name,
           })
-          this[CancelKeyRecords].push({ key: this[CancelKey], source, id })
+        )
+      } catch (e) {
+        console.error(e)
+      }
+
+      if (optionsMix.cache) {
+        // 清除过期缓存
+        let now = Date.now()
+        let targets = this[CacheRecords].filter((o) => o.expires < now)
+          .map((value, index) => ({ value, index }))
+          .reverse()
+        targets.forEach((o) => {
+          // 移除记录
+          this[CacheRecords].splice(o.index, 1)
+        })
+        // 查找有效缓存
+        let index = this[CacheRecords].findIndex((o) => o.key === cacheKey)
+        if (index > -1) {
+          cacheRecord = this[CacheRecords][index]
+        }
+      }
+      if (cacheRecord !== null) {
+        resolve(cacheRecord.data)
+      } else {
+        this[AxiosInstanceSymbol].request({
+          ...optionsMix,
+          cancelToken: optionsMix.cancel ? source.token : optionsMix.cancelToken,
+        })
+          .then((res) => {
+            if (optionsMix.cancel) {
+              let index = this[CancelRecords].findIndex((o) => o.id === id)
+              if (index > -1) {
+                this[CancelRecords].splice(index, 1)
+              }
+            }
+
+            console.log(`%csuccess / %c${this[OptionsPath]} / %c${id}`, 'color:green', 'color:orange', 'color:purple')
+
+            // 记录缓存
+            if (optionsMix.cache && optionsMix.cache > 0 && cacheKey) {
+              // 有效时长、有效key
+              this[CacheRecords].push({
+                id,
+                key: cacheKey,
+                data: res,
+                expires: Date.now() + optionsMix.cache,
+              })
+            }
+            resolve(res)
+          })
+          .catch((e) => {
+            // if (!axios.isCancel(e)) {
+            // }
+            if (optionsMix.cancel) {
+              let index = this[CancelRecords].findIndex((o) => o.id === id)
+              if (index > -1) {
+                this[CancelRecords].splice(index, 1)
+              }
+            }
+
+            console.log(`%cfail / %c${this[OptionsPath]} / %c${id}`, 'color:red', 'color:orange', 'color:purple')
+            reject(e)
+          })
+        if (optionsMix.cancel) {
+          // 开启cancel功能
+          if (optionsMix.cancel === 'current') {
+            // 取消当前的
+            if (this[CancelRecords].findIndex((o) => o.key === this[CancelKey]) > -1) {
+              source.cancel(`${this[OptionsPath]} / ${id}`)
+            } else {
+              this[CancelRecords].push({ key: this[CancelKey], source, id })
+            }
+          } else if (optionsMix.cancel === 'previous') {
+            // 取消之前的
+            let targets = this[CancelRecords].filter((o) => o.key === this[CancelKey])
+              .map((value, index) => ({ value, index }))
+              .reverse()
+            targets.forEach((o) => {
+              o.value.source.cancel(`${this[OptionsPath]} / ${id}`)
+              // 移除记录
+              this[CancelRecords].splice(o.index, 1)
+            })
+            this[CancelRecords].push({ key: this[CancelKey], source, id })
+          }
         }
       }
     })
@@ -196,7 +269,8 @@ class ApiModule {
     config: AxiosRequestConfig = {},
     info?: {
       option?: ApiModuleOptions
-      cancelKeyRecords?: Array<CancelKeyRecord>
+      cancelRecords?: Array<CancelRecord>
+      cacheRecords?: Array<CacheRecord>
     }
   ) {
     // Api模块配置
@@ -209,13 +283,17 @@ class ApiModule {
             des: '根模块/root module',
             children: options,
           }
+
     // 生成路径
     this[OptionsPath] = parseNamePath(this[OptionsSymbol])
-    // 初始化取消唯一码记录
-    this[CancelKeyRecords] = info && info.cancelKeyRecords ? info.cancelKeyRecords : []
 
+    // 初始化取消记录
+    this[CancelRecords] = info && info.cancelRecords ? info.cancelRecords : []
     // 生成取消用的唯一码
     this[CancelKey] = md5(this[OptionsPath])
+
+    // 初始化缓存记录
+    this[CacheRecords] = info && info.cacheRecords ? info.cacheRecords : []
 
     // 保留字段
     const ReservedField = Object.keys(this).concat([
@@ -249,7 +327,7 @@ class ApiModule {
         }
 
         // 接口实例
-        this[opts.name] = new ApiModule(opts.children, config, { option: opts, cancelKeyRecords: this[CancelKeyRecords] })
+        this[opts.name] = new ApiModule(opts.children, config, { option: opts, cancelRecords: this[CancelRecords], cacheRecords: this[CacheRecords] })
       }
     }
     // Axios实例

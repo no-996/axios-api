@@ -122,7 +122,9 @@ export default [
             name: 'golden',
             des: '金毛',
             url: '/posts/3',
-            cancel: 'previous',
+            // cancel: 'previous',
+            cancel: 'current',
+            cache: 3000,
           },
           {
             name: 'teddy',
