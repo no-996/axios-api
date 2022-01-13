@@ -13,6 +13,11 @@ interface ApiMetadata {
   [index: string]: ApiMetadataItem | string
 }
 
+interface CacheStorage {
+  getItem(key: string): string | null
+  setItem(key: string, value: string): void
+}
+
 /**
  * Api模块配置
  * / Api module options
@@ -58,6 +63,18 @@ interface ApiModuleOptions extends AxiosRequestConfig {
    * / Parent modules
    */
   parent?: ApiModuleOptions
+}
+
+/**
+ * Api配置
+ * / Api config
+ */
+interface ApiModuleConfig {
+  /**
+   * 缓存工具
+   * / Cache storage
+   */
+  cacheStorage?: CacheStorage
 }
 
 /**
@@ -214,7 +231,17 @@ class ApiModule {
               this[CacheRecords].push({
                 id,
                 key: cacheKey,
-                data: res,
+                data: {
+                  ...res,
+                  config: {
+                    ...res.config,
+                    // 去除冗余数据
+                    cacheRecords: undefined,
+                    cacheStorage: undefined,
+                    children: undefined,
+                    parent: undefined,
+                  },
+                },
                 expires: Date.now() + optionsMix.cache,
               })
             }
@@ -267,6 +294,7 @@ class ApiModule {
   constructor(
     options: ApiModuleOptions[] = [],
     config: AxiosRequestConfig = {},
+    apiModuleConfig: ApiModuleConfig = {},
     info?: {
       option?: ApiModuleOptions
       cancelRecords?: Array<CancelRecord>
@@ -293,7 +321,33 @@ class ApiModule {
     this[CancelKey] = md5(this[OptionsPath])
 
     // 初始化缓存记录
-    this[CacheRecords] = info && info.cacheRecords ? info.cacheRecords : []
+    let cacheDefault: Array<CacheRecord> = []
+    if (apiModuleConfig.cacheStorage) {
+      try {
+        // 恢复缓存记录
+        cacheDefault = JSON.parse(apiModuleConfig.cacheStorage.getItem('axios-api-cache') as string) || []
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    //
+    cacheDefault = info && info.cacheRecords ? info.cacheRecords : cacheDefault
+    this[CacheRecords] = new Proxy(cacheDefault, {
+      get(target, key) {
+        return target[key as any]
+      },
+      set(target, key, value) {
+        target[key as any] = value
+        if (apiModuleConfig.cacheStorage) {
+          try {
+            apiModuleConfig.cacheStorage.setItem('axios-api-cache', JSON.stringify(target))
+          } catch (e) {
+            console.error(e)
+          }
+        }
+        return true
+      },
+    })
 
     // 保留字段
     const ReservedField = Object.keys(this).concat([
@@ -327,7 +381,11 @@ class ApiModule {
         }
 
         // 接口实例
-        this[opts.name] = new ApiModule(opts.children, config, { option: opts, cancelRecords: this[CancelRecords], cacheRecords: this[CacheRecords] })
+        this[opts.name] = new ApiModule(opts.children, config, apiModuleConfig, {
+          option: opts,
+          cancelRecords: this[CancelRecords],
+          cacheRecords: this[CacheRecords],
+        })
       }
     }
     // Axios实例
