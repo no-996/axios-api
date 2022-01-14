@@ -8,8 +8,12 @@ export default new ApiModule(
   options,
   {
     baseURL: 'https://jsonplaceholder.typicode.com',
+    onUploadProgress: (progressEvent, percentCompleted) => {
+      console.log(percentCompleted)
+    },
   },
   {
     cacheStorage: localStorage,
+    debug: true,
   }
 )

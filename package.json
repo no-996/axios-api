@@ -26,9 +26,11 @@
   "homepage": "https://github.com/no-996/axios-api#readme",
   "dependencies": {
     "@types/md5": "^2.3.1",
+    "@types/qs": "6.9.7",
     "@types/uuid": "^8.3.4",
     "axios": "0.24.0",
     "md5": "^2.3.0",
+    "qs": "6.7.0",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
@@ -39,7 +41,7 @@
     "@babel/polyfill": "^7.10.4",
     "@babel/preset-env": "^7.11.0",
     "@babel/preset-typescript": "^7.15.0",
-    "@no-996/axios-api-webpack-plugin": "^1.0.6",
+    "@no-996/axios-api-webpack-plugin": "^1.0.7",
     "@vue/babel-helper-vue-jsx-merge-props": "^1.0.0",
     "@vue/babel-preset-jsx": "^1.1.2",
     "babel-eslint": "^10.1.0",

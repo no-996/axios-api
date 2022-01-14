@@ -169,7 +169,7 @@ if (process.env.NODE_ENV === 'development') {
       hash: true,
     }),
     new AxiosApiWebpackPlugin({
-      configFile: './src/api/config/index.js',
+      configFile: './src/api/options/index.js',
       declareOutputFile: './src/api/index.d.ts',
     }),
   ])

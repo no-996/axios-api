@@ -53,7 +53,9 @@
       async request02() {
         try {
           this.loading = true
-          let { data } = await this.$api.annimal.dog.golden.request({})
+          let res = await this.$api.annimal.dog.golden.request({})
+          console.log(res)
+          let { data } = res
           this.results.splice(0, 0, {
             num: ++this.num,
             time: new Date(),

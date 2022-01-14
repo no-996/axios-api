@@ -1,5 +1,49 @@
 export default [
   {
+    name: 'posts',
+    url: '/posts',
+    params: {
+      userId: 1,
+    },
+    children: [
+      {
+        name: 'comments',
+        url: '/posts/{postId}/comments',
+        urlParams: {
+          postId: 3,
+        },
+      },
+    ],
+  },
+  {
+    name: 'albums',
+    url: '/albums',
+    des: '专辑',
+    params: {},
+    children: [],
+  },
+  {
+    name: 'photos',
+    url: '/photos',
+    des: '相片',
+    params: {},
+    children: [],
+  },
+  {
+    name: 'todos',
+    url: '/todos',
+    des: '待办事项',
+    params: {},
+    children: [],
+  },
+  {
+    name: 'users',
+    url: '/users',
+    des: '用户',
+    params: {},
+    children: [],
+  },
+  {
     name: 'human',
     des: '人类',
     url: '/posts/1',
@@ -121,10 +165,24 @@ export default [
           {
             name: 'golden',
             des: '金毛',
-            url: '/posts/3',
+            url: '/posts/{id}',
             // cancel: 'previous',
             cancel: 'current',
             cache: 3000,
+            params: {
+              other: 'a',
+            },
+            urlParams: {
+              id: 3,
+            },
+            // urlOnly: true,
+            // baseURL() {
+            //   return new Promise((resolve) => {
+            //     setTimeout(() => {
+            //       resolve('kkk')
+            //     }, 5000)
+            //   })
+            // },
           },
           {
             name: 'teddy',

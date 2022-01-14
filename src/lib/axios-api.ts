@@ -1,11 +1,34 @@
 import axios, { AxiosInstance, AxiosRequestConfig, CancelTokenSource } from 'axios'
 import md5 from 'md5'
 import { v4 as uuid } from 'uuid'
+import Qs from 'qs'
 
 interface ApiMetadataItem {
+  /**
+   * 参数名
+   * / field name
+   */
   name: string
+  /**
+   * 参数描述
+   * / field des
+   */
+  des: string
+  // TODO: 参数校验
+  /**
+   * 参数类型
+   * / field type
+   */
   type?: string
+  /**
+   * 参数必填
+   * / field required
+   */
   required?: boolean
+  /**
+   * 自定义校验
+   * / field validator
+   */
   // validator?:
 }
 
@@ -18,11 +41,29 @@ interface CacheStorage {
   setItem(key: string, value: string): void
 }
 
+interface ApiURLParams {
+  [index: string]: any
+}
+
+interface BaseURL {
+  (params: ApiModuleOptions): string | Promise<string>
+}
+
 /**
  * Api模块配置
  * / Api module options
  */
-interface ApiModuleOptions extends AxiosRequestConfig {
+interface ApiModuleOptions extends Omit<AxiosRequestConfig, 'baseURL' | 'onUploadProgress'> {
+  /**
+   * 扩展支持方法
+   * / baseURL support function
+   */
+  baseURL?: string | BaseURL
+  /**
+   * 扩展返回百分比
+   */
+  onUploadProgress?: (progressEvent: any, percentCompleted: number) => void
+  //
   /**
    * 接口名
    * / Api name
@@ -44,11 +85,6 @@ interface ApiModuleOptions extends AxiosRequestConfig {
    */
   cache?: number | null
   /**
-   * 是否仅返回处理后的url，如返回文件url路径
-   * / Return the parsed url only
-   */
-  parseURL?: boolean
-  /**
    * 子模块
    * / Sub modules
    */
@@ -63,6 +99,16 @@ interface ApiModuleOptions extends AxiosRequestConfig {
    * / Parent modules
    */
   parent?: ApiModuleOptions
+  /**
+   * 是否仅返回处理后的url，如返回文件url路径
+   * / Return the parsed url only
+   */
+  urlOnly?: boolean
+  /**
+   * 替换url中的参数
+   * / Params for url replace
+   */
+  urlParams?: ApiURLParams
 }
 
 /**
@@ -75,6 +121,12 @@ interface ApiModuleConfig {
    * / Cache storage
    */
   cacheStorage?: CacheStorage
+  /**
+   * 是否显示调试日志
+   * / show debug console
+   */
+  debug?: boolean
+  // TODO: 统一输出调试信息方法
 }
 
 /**
@@ -96,6 +148,10 @@ interface CacheRecord {
   key: string
   data?: any
   expires: number
+}
+
+interface ParamsSerializer {
+  (params: any): string
 }
 
 const OptionsSymbol = Symbol('options')
@@ -152,6 +208,33 @@ class ApiModule {
   readonly [AxiosInstanceSymbol]: AxiosInstance
 
   /**
+   * 参数处理方法 / paramsSerializer
+   * @param params
+   */
+  paramsSerializer(url: string, params: any, func?: ParamsSerializer) {
+    let query = ''
+    try {
+      if (typeof func == 'function') {
+        query = func(params) || ''
+      } else {
+        query = Qs.stringify(params, { arrayFormat: 'brackets' })
+      }
+    } catch (e) {
+      console.error(e)
+    }
+    // 是否已经有参数
+    if (/\?[^?#]*$/.test(url)) {
+      if (/[&?]$/.test(url)) {
+        return url + query
+      } else {
+        return url + (query ? `&${query}` : '')
+      }
+    } else {
+      return url + (query ? `?${query}` : '')
+    }
+  }
+
+  /**
    * 请求方法 / Request function
    * @returns
    */
@@ -166,124 +249,188 @@ class ApiModule {
       ...options,
     }
 
-    return new Promise((resolve, reject) => {
-      const source = CancelToken.source()
-      const id = uuid()
-      console.log(`%crequest / %c${this[OptionsPath]} / %c${id}`, 'color:blue', 'color:orange', 'color:purple')
-
-      let cacheKey = ''
-      let cacheRecord = null
-
-      try {
-        cacheKey = md5(
-          JSON.stringify({
-            url: optionsMix.url,
-            baseURL: optionsMix.baseURL,
-            method: optionsMix.method,
-            headers: optionsMix.headers,
-            data: optionsMix.data,
-            params: optionsMix.params,
-            auth: optionsMix.auth,
-            //
-            name: optionsMix.name,
-          })
-        )
-      } catch (e) {
-        console.error(e)
-      }
-
-      if (optionsMix.cache) {
-        // 清除过期缓存
-        let now = Date.now()
-        let targets = this[CacheRecords].filter((o) => o.expires < now)
-          .map((value, index) => ({ value, index }))
-          .reverse()
-        targets.forEach((o) => {
-          // 移除记录
-          this[CacheRecords].splice(o.index, 1)
-        })
-        // 查找有效缓存
-        let index = this[CacheRecords].findIndex((o) => o.key === cacheKey)
-        if (index > -1) {
-          cacheRecord = this[CacheRecords][index]
+    // URL转换
+    optionsMix.url = this.parseURL(optionsMix)
+    // baseURL处理
+    try {
+      if (optionsMix.baseURL) {
+        if (typeof optionsMix.baseURL === 'function') {
+          optionsMix.baseURL = await optionsMix.baseURL(optionsMix)
         }
       }
-      if (cacheRecord !== null) {
-        resolve(cacheRecord.data)
-      } else {
-        this[AxiosInstanceSymbol].request({
-          ...optionsMix,
-          cancelToken: optionsMix.cancel ? source.token : optionsMix.cancelToken,
-        })
-          .then((res) => {
-            if (optionsMix.cancel) {
-              let index = this[CancelRecords].findIndex((o) => o.id === id)
-              if (index > -1) {
-                this[CancelRecords].splice(index, 1)
-              }
-            }
+    } catch (e) {
+      console.error(e)
+    }
 
-            console.log(`%csuccess / %c${this[OptionsPath]} / %c${id}`, 'color:green', 'color:orange', 'color:purple')
+    if (optionsMix.urlOnly) {
+      // 直接返回URL，包含params参数转化的query
+      return this.paramsSerializer(optionsMix.url, optionsMix.params, optionsMix.paramsSerializer)
+    } else {
+      return new Promise((resolve, reject) => {
+        const source = CancelToken.source()
+        const id = uuid()
+        console.log(`%crequest / %c${this[OptionsPath]} / %c${id}`, 'color:blue', 'color:orange', 'color:purple')
 
-            // 记录缓存
-            if (optionsMix.cache && optionsMix.cache > 0 && cacheKey) {
-              // 有效时长、有效key
-              this[CacheRecords].push({
-                id,
-                key: cacheKey,
-                data: {
-                  ...res,
-                  config: {
-                    ...res.config,
-                    // 去除冗余数据
-                    cacheRecords: undefined,
-                    cacheStorage: undefined,
-                    children: undefined,
-                    parent: undefined,
-                  },
-                },
-                expires: Date.now() + optionsMix.cache,
-              })
-            }
-            resolve(res)
-          })
-          .catch((e) => {
-            // if (!axios.isCancel(e)) {
-            // }
-            if (optionsMix.cancel) {
-              let index = this[CancelRecords].findIndex((o) => o.id === id)
-              if (index > -1) {
-                this[CancelRecords].splice(index, 1)
-              }
-            }
+        let cacheKey = ''
+        let cacheRecord = null
 
-            console.log(`%cfail / %c${this[OptionsPath]} / %c${id}`, 'color:red', 'color:orange', 'color:purple')
-            reject(e)
-          })
-        if (optionsMix.cancel) {
-          // 开启cancel功能
-          if (optionsMix.cancel === 'current') {
-            // 取消当前的
-            if (this[CancelRecords].findIndex((o) => o.key === this[CancelKey]) > -1) {
-              source.cancel(`${this[OptionsPath]} / ${id}`)
-            } else {
-              this[CancelRecords].push({ key: this[CancelKey], source, id })
-            }
-          } else if (optionsMix.cancel === 'previous') {
-            // 取消之前的
-            let targets = this[CancelRecords].filter((o) => o.key === this[CancelKey])
-              .map((value, index) => ({ value, index }))
-              .reverse()
-            targets.forEach((o) => {
-              o.value.source.cancel(`${this[OptionsPath]} / ${id}`)
-              // 移除记录
-              this[CancelRecords].splice(o.index, 1)
+        try {
+          cacheKey = md5(
+            JSON.stringify({
+              url: optionsMix.url,
+              baseURL: optionsMix.baseURL,
+              method: optionsMix.method,
+              headers: optionsMix.headers,
+              data: optionsMix.data,
+              params: optionsMix.params,
+              auth: optionsMix.auth,
+              //
+              name: optionsMix.name,
             })
-            this[CancelRecords].push({ key: this[CancelKey], source, id })
+          )
+        } catch (e) {
+          console.error(e)
+        }
+
+        if (optionsMix.cache) {
+          // 清除过期缓存
+          let now = Date.now()
+          let targets = this[CacheRecords].filter((o) => o.expires < now)
+            .map((value, index) => ({ value, index }))
+            .reverse()
+          targets.forEach((o) => {
+            // 移除记录
+            this[CacheRecords].splice(o.index, 1)
+          })
+          // 查找有效缓存
+          let index = this[CacheRecords].findIndex((o) => o.key === cacheKey)
+          if (index > -1) {
+            cacheRecord = this[CacheRecords][index]
           }
         }
+        if (cacheRecord !== null) {
+          // 返回缓存记录
+          resolve(cacheRecord.data)
+        } else {
+          // 请求
+          this[AxiosInstanceSymbol].request({
+            ...optionsMix,
+            cancelToken: optionsMix.cancel ? source.token : optionsMix.cancelToken,
+            // 增加百分比输出（2位小数）
+            onUploadProgress: (progressEvent) => {
+              let percentCompleted = 0
+              try {
+                // 计算百分比
+                percentCompleted = Math.round(((progressEvent.loaded * 100) / progressEvent.total) * 100) / 100
+              } catch (e) {
+                console.error(e)
+              }
+              try {
+                if (optionsMix.onUploadProgress) {
+                  optionsMix.onUploadProgress(progressEvent, percentCompleted)
+                }
+              } catch (e) {
+                console.error(e)
+              }
+            },
+          } as AxiosRequestConfig)
+            .then((res) => {
+              if (optionsMix.cancel) {
+                let index = this[CancelRecords].findIndex((o) => o.id === id)
+                if (index > -1) {
+                  this[CancelRecords].splice(index, 1)
+                }
+              }
+
+              console.log(`%csuccess / %c${this[OptionsPath]} / %c${id}`, 'color:green', 'color:orange', 'color:purple')
+
+              // 记录缓存
+              if (optionsMix.cache && optionsMix.cache > 0 && cacheKey) {
+                // 有效时长、有效key
+                this[CacheRecords].push({
+                  id,
+                  key: cacheKey,
+                  data: {
+                    ...res,
+                    config: {
+                      ...res.config,
+                      // 去除冗余数据
+                      cacheRecords: undefined,
+                      cacheStorage: undefined,
+                      children: undefined,
+                      parent: undefined,
+                    },
+                  },
+                  expires: Date.now() + optionsMix.cache,
+                })
+              }
+              resolve(res)
+            })
+            .catch((e) => {
+              // if (!axios.isCancel(e)) {
+              // }
+              if (optionsMix.cancel) {
+                let index = this[CancelRecords].findIndex((o) => o.id === id)
+                if (index > -1) {
+                  this[CancelRecords].splice(index, 1)
+                }
+              }
+
+              console.log(`%cfail / %c${this[OptionsPath]} / %c${id}`, 'color:red', 'color:orange', 'color:purple')
+              reject(e)
+            })
+          if (optionsMix.cancel) {
+            // 开启cancel功能
+            if (optionsMix.cancel === 'current') {
+              // 取消当前的
+              if (this[CancelRecords].findIndex((o) => o.key === this[CancelKey]) > -1) {
+                source.cancel(`${this[OptionsPath]} / ${id}`)
+              } else {
+                this[CancelRecords].push({ key: this[CancelKey], source, id })
+              }
+            } else if (optionsMix.cancel === 'previous') {
+              // 取消之前的
+              let targets = this[CancelRecords].filter((o) => o.key === this[CancelKey])
+                .map((value, index) => ({ value, index }))
+                .reverse()
+              targets.forEach((o) => {
+                o.value.source.cancel(`${this[OptionsPath]} / ${id}`)
+                // 移除记录
+                this[CancelRecords].splice(o.index, 1)
+              })
+              this[CancelRecords].push({ key: this[CancelKey], source, id })
+            }
+          }
+        }
+      })
+    }
+  }
+
+  /**
+   * 处理URL参数 / Parse URL params
+   */
+  parseURL(options: ApiModuleOptions): string {
+    let url = options.url || ''
+    if (options.urlParams) {
+      const inject = /{[^{}]+}/.test(url)
+      // 参数替换（取params首层）
+      if (inject) {
+        let placements = url.match(/{([^{}]+)}/g)
+        if (placements) {
+          let keys = placements.map((o) => o.replace(/[{}]/g, ''))
+          keys.forEach((k) => {
+            if (options.urlParams) {
+              let value = options.urlParams[k]
+              if (typeof value !== 'undefined') {
+                let reg = new RegExp(`{${k}}`)
+                url = url.replace(reg, value.toString())
+              }
+            }
+          })
+        }
       }
-    })
+    }
+    return url
   }
   /**
    * Api模块
