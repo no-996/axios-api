@@ -146,7 +146,75 @@ export default [
 
 ## api配置说明
 
+|配置|类型|必填|默认值|说明|
+| :-: | :-: | :-: | :-: | --- |
+|baseURL|string/function/Promise|否|''|原baseURL的扩展，支持function/Promise返回|
+|onUploadProgress|(progressEvent: any, percentCompleted: number) => void|否|/|原onUploadProgress的扩展，增加第二参数，返回百分比值|
+|name|string|是|/|接口名|
+|des|string|否|/|接口描述|
+|cancel|'current'/'previous'|否|/|请求中止方式|
+|cache|number|否|/|接口结果缓存时长毫秒数|
+|urlOnly|boolean|否|/|是否仅返回处理好的url地址（融合params、urlParams）|
+|urlParams|object|否|/|url地址模板替换映射|
+|metadata|ApiMetadata|否|/|请求参数的元数据描述，用于d.ts生成并产生智能提示|
+|children|array<api配置>|否|[]|api配置嵌套|
+
+```ts
+/**
+ * 参数元数据内容 / Params metadata info
+ */
+interface ApiMetadataItem {
+  /**
+   * 参数名
+   * / field name
+   */
+  name: string
+  /**
+   * 参数描述
+   * / field des
+   */
+  des: string
+  // TODO: 参数校验
+  /**
+   * 参数类型
+   * / field type
+   */
+  type?: string
+  /**
+   * 参数必填
+   * / field required
+   */
+  required?: boolean
+  /**
+   * 自定义校验
+   * / field validator
+   */
+  // validator?:
+}
+
+/**
+ * 参数元数据 / Params metadata
+ */
+interface ApiMetadata {
+  [index: string]: ApiMetadataItem | string
+}
+```
+
 ## axios-api配置说明
+
+|配置|类型|默认值|说明|
+| :-: | :-: | :-: | --- |
+|debug|boolean|false|是否显示调试日志|
+|cacheStorage|CacheStorage|/|缓存工具（如：localStorage、sessionStorage）|
+
+```ts
+interface CacheStorage {
+  // 获取缓存
+  getItem(key: string): string | null
+  // 设置缓存
+  setItem(key: string, value: string): void
+}
+```
 
 ## 依赖说明
 
