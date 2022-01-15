@@ -3,6 +3,63 @@ import md5 from 'md5'
 import { v4 as uuid } from 'uuid'
 import Qs from 'qs'
 
+/**
+ * Api配置
+ * / Api config
+ */
+interface ApiModuleConfig {
+  /**
+   * 缓存工具
+   * / Cache storage
+   */
+  cacheStorage?: CacheStorage
+  /**
+   * 是否显示调试日志
+   * / show debug console
+   */
+  debug?: boolean
+  // TODO: 统一输出调试信息方法
+}
+
+interface CacheStorage {
+  // 获取缓存
+  getItem(key: string): string | null
+  // 设置缓存
+  setItem(key: string, value: string): void
+}
+
+interface BaseURL {
+  (params: ApiModuleOptions): string | Promise<string>
+}
+
+interface ApiURLParams {
+  [index: string]: any
+}
+
+/**
+ * 取消记录 / Cancel records
+ */
+interface CancelRecord {
+  id: string
+  // 取消用唯一码 / Cancel key
+  key: string
+  source: CancelTokenSource
+}
+
+/**
+ * 缓存记录 / Cache records
+ */
+interface CacheRecord {
+  id: string
+  // 缓存唯一码 / Cache key
+  key: string
+  data?: any
+  expires: number
+}
+
+/**
+ * 参数元数据内容 / Params metadata info
+ */
 interface ApiMetadataItem {
   /**
    * 参数名
@@ -32,21 +89,11 @@ interface ApiMetadataItem {
   // validator?:
 }
 
+/**
+ * 参数元数据 / Params metadata
+ */
 interface ApiMetadata {
   [index: string]: ApiMetadataItem | string
-}
-
-interface CacheStorage {
-  getItem(key: string): string | null
-  setItem(key: string, value: string): void
-}
-
-interface ApiURLParams {
-  [index: string]: any
-}
-
-interface BaseURL {
-  (params: ApiModuleOptions): string | Promise<string>
 }
 
 /**
@@ -75,8 +122,8 @@ interface ApiModuleOptions extends Omit<AxiosRequestConfig, 'baseURL' | 'onUploa
    */
   des?: string
   /**
-   * 请求中断方式：previous、current、自定义
-   * / Cancel type: previous、current、custom
+   * 请求中断方式：previous、current
+   * / Cancel type: previous、current
    */
   cancel?: string | null
   /**
@@ -111,55 +158,17 @@ interface ApiModuleOptions extends Omit<AxiosRequestConfig, 'baseURL' | 'onUploa
   urlParams?: ApiURLParams
 }
 
-/**
- * Api配置
- * / Api config
- */
-interface ApiModuleConfig {
-  /**
-   * 缓存工具
-   * / Cache storage
-   */
-  cacheStorage?: CacheStorage
-  /**
-   * 是否显示调试日志
-   * / show debug console
-   */
-  debug?: boolean
-  // TODO: 统一输出调试信息方法
-}
-
-/**
- * 取消记录 / Cancel records
- */
-interface CancelRecord {
-  id: string
-  // 取消用唯一码 / Cancel key
-  key: string
-  source: CancelTokenSource
-}
-
-/**
- * 缓存记录 / Cache records
- */
-interface CacheRecord {
-  id: string
-  // 缓存唯一码 / Cache key
-  key: string
-  data?: any
-  expires: number
-}
-
 interface ParamsSerializer {
   (params: any): string
 }
 
 const OptionsSymbol = Symbol('options')
+const ConfigSymbol = Symbol('config')
 const AxiosInstanceSymbol = Symbol('axiosInstance')
-const OptionsPath = Symbol('optionsPath')
-const CancelKey = Symbol('cancelKey')
-const CancelRecords = Symbol('CancelRecords')
-const CacheRecords = Symbol('CacheRecords')
+const OptionsPathSymbol = Symbol('optionsPath')
+const CancelKeySymbol = Symbol('cancelKey')
+const CancelRecordsSymbol = Symbol('cancelRecords')
+const CacheRecordsSymbol = Symbol('cacheRecords')
 const CancelToken = axios.CancelToken
 // 生成路径
 function parseNamePath(option: ApiModuleOptions): string {
@@ -182,6 +191,10 @@ function parseNamePath(option: ApiModuleOptions): string {
  */
 class ApiModule {
   /**
+   * Api配置 / Api config
+   */
+  readonly [ConfigSymbol]: ApiModuleConfig;
+  /**
    * Api模块配置 / Api module options
    */
   readonly [OptionsSymbol]: ApiModuleOptions;
@@ -189,19 +202,19 @@ class ApiModule {
    * Api模块配置路径 / Api module options path
    */
 
-  readonly [OptionsPath]: string;
+  readonly [OptionsPathSymbol]: string;
   /**
    * 取消用唯一码 / Cancel key
    */
-  readonly [CancelKey]: string;
+  readonly [CancelKeySymbol]: string;
   /**
    * 取消用唯一码记录 / Cancel key records
    */
-  readonly [CancelRecords]: Array<CancelRecord>;
+  readonly [CancelRecordsSymbol]: Array<CancelRecord>;
   /**
    * 缓存记录 / Cache records
    */
-  readonly [CacheRecords]: Array<CacheRecord>;
+  readonly [CacheRecordsSymbol]: Array<CacheRecord>;
   /**
    * Axios 实例 / Axios instance
    */
@@ -269,7 +282,8 @@ class ApiModule {
       return new Promise((resolve, reject) => {
         const source = CancelToken.source()
         const id = uuid()
-        console.log(`%crequest / %c${this[OptionsPath]} / %c${id}`, 'color:blue', 'color:orange', 'color:purple')
+
+        this[ConfigSymbol].debug && console.log(`%crequest / %c${this[OptionsPathSymbol]} / %c${id}`, 'color:blue', 'color:orange', 'color:purple')
 
         let cacheKey = ''
         let cacheRecord = null
@@ -295,17 +309,17 @@ class ApiModule {
         if (optionsMix.cache) {
           // 清除过期缓存
           let now = Date.now()
-          let targets = this[CacheRecords].filter((o) => o.expires < now)
+          let targets = this[CacheRecordsSymbol].filter((o) => o.expires < now)
             .map((value, index) => ({ value, index }))
             .reverse()
           targets.forEach((o) => {
             // 移除记录
-            this[CacheRecords].splice(o.index, 1)
+            this[CacheRecordsSymbol].splice(o.index, 1)
           })
           // 查找有效缓存
-          let index = this[CacheRecords].findIndex((o) => o.key === cacheKey)
+          let index = this[CacheRecordsSymbol].findIndex((o) => o.key === cacheKey)
           if (index > -1) {
-            cacheRecord = this[CacheRecords][index]
+            cacheRecord = this[CacheRecordsSymbol][index]
           }
         }
         if (cacheRecord !== null) {
@@ -336,18 +350,19 @@ class ApiModule {
           } as AxiosRequestConfig)
             .then((res) => {
               if (optionsMix.cancel) {
-                let index = this[CancelRecords].findIndex((o) => o.id === id)
+                let index = this[CancelRecordsSymbol].findIndex((o) => o.id === id)
                 if (index > -1) {
-                  this[CancelRecords].splice(index, 1)
+                  this[CancelRecordsSymbol].splice(index, 1)
                 }
               }
 
-              console.log(`%csuccess / %c${this[OptionsPath]} / %c${id}`, 'color:green', 'color:orange', 'color:purple')
+              this[ConfigSymbol].debug &&
+                console.log(`%csuccess / %c${this[OptionsPathSymbol]} / %c${id}`, 'color:green', 'color:orange', 'color:purple')
 
               // 记录缓存
               if (optionsMix.cache && optionsMix.cache > 0 && cacheKey) {
                 // 有效时长、有效key
-                this[CacheRecords].push({
+                this[CacheRecordsSymbol].push({
                   id,
                   key: cacheKey,
                   data: {
@@ -370,35 +385,35 @@ class ApiModule {
               // if (!axios.isCancel(e)) {
               // }
               if (optionsMix.cancel) {
-                let index = this[CancelRecords].findIndex((o) => o.id === id)
+                let index = this[CancelRecordsSymbol].findIndex((o) => o.id === id)
                 if (index > -1) {
-                  this[CancelRecords].splice(index, 1)
+                  this[CancelRecordsSymbol].splice(index, 1)
                 }
               }
 
-              console.log(`%cfail / %c${this[OptionsPath]} / %c${id}`, 'color:red', 'color:orange', 'color:purple')
+              this[ConfigSymbol].debug && console.log(`%cfail / %c${this[OptionsPathSymbol]} / %c${id}`, 'color:red', 'color:orange', 'color:purple')
               reject(e)
             })
           if (optionsMix.cancel) {
             // 开启cancel功能
             if (optionsMix.cancel === 'current') {
               // 取消当前的
-              if (this[CancelRecords].findIndex((o) => o.key === this[CancelKey]) > -1) {
-                source.cancel(`${this[OptionsPath]} / ${id}`)
+              if (this[CancelRecordsSymbol].findIndex((o) => o.key === this[CancelKeySymbol]) > -1) {
+                source.cancel(`${this[OptionsPathSymbol]} / ${id}`)
               } else {
-                this[CancelRecords].push({ key: this[CancelKey], source, id })
+                this[CancelRecordsSymbol].push({ key: this[CancelKeySymbol], source, id })
               }
             } else if (optionsMix.cancel === 'previous') {
               // 取消之前的
-              let targets = this[CancelRecords].filter((o) => o.key === this[CancelKey])
+              let targets = this[CancelRecordsSymbol].filter((o) => o.key === this[CancelKeySymbol])
                 .map((value, index) => ({ value, index }))
                 .reverse()
               targets.forEach((o) => {
-                o.value.source.cancel(`${this[OptionsPath]} / ${id}`)
+                o.value.source.cancel(`${this[OptionsPathSymbol]} / ${id}`)
                 // 移除记录
-                this[CancelRecords].splice(o.index, 1)
+                this[CancelRecordsSymbol].splice(o.index, 1)
               })
-              this[CancelRecords].push({ key: this[CancelKey], source, id })
+              this[CancelRecordsSymbol].push({ key: this[CancelKeySymbol], source, id })
             }
           }
         }
@@ -448,6 +463,9 @@ class ApiModule {
       cacheRecords?: Array<CacheRecord>
     }
   ) {
+    // Api配置
+    this[ConfigSymbol] = apiModuleConfig
+
     // Api模块配置
     this[OptionsSymbol] =
       info && info.option
@@ -460,12 +478,12 @@ class ApiModule {
           }
 
     // 生成路径
-    this[OptionsPath] = parseNamePath(this[OptionsSymbol])
+    this[OptionsPathSymbol] = parseNamePath(this[OptionsSymbol])
 
     // 初始化取消记录
-    this[CancelRecords] = info && info.cancelRecords ? info.cancelRecords : []
+    this[CancelRecordsSymbol] = info && info.cancelRecords ? info.cancelRecords : []
     // 生成取消用的唯一码
-    this[CancelKey] = md5(this[OptionsPath])
+    this[CancelKeySymbol] = md5(this[OptionsPathSymbol])
 
     // 初始化缓存记录
     let cacheDefault: Array<CacheRecord> = []
@@ -477,9 +495,10 @@ class ApiModule {
         console.error(e)
       }
     }
+
     //
     cacheDefault = info && info.cacheRecords ? info.cacheRecords : cacheDefault
-    this[CacheRecords] = new Proxy(cacheDefault, {
+    this[CacheRecordsSymbol] = new Proxy(cacheDefault, {
       get(target, key) {
         return target[key as any]
       },
@@ -528,10 +547,10 @@ class ApiModule {
         }
 
         // 接口实例
-        this[opts.name] = new ApiModule(opts.children, config, apiModuleConfig, {
+        this[opts.name] = new ApiModule(opts.children, config, this[ConfigSymbol], {
           option: opts,
-          cancelRecords: this[CancelRecords],
-          cacheRecords: this[CacheRecords],
+          cancelRecords: this[CancelRecordsSymbol],
+          cacheRecords: this[CacheRecordsSymbol],
         })
       }
     }
