@@ -1,6 +1,6 @@
 # axios-api
 
-基于 axios 可建立结构化实例的工具，有以下特点：
+[@no-996/axios-api](https://www.npmjs.com/package/@no-996/axios-api)基于 axios 可建立结构化实例的工具，有以下特点：
 
 1. 基于 axios，兼容 axios 的 api，可无缝的迁移使用。
 2. 内置了两种常用的请求终止（基于cancelToken）场景，可防止接口重复调用。
