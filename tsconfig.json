@@ -17,7 +17,9 @@
     },
     "lib": ["esnext", "dom", "dom.iterable", "scripthost"],
     "resolveJsonModule": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "declaration": true,
+    "declarationDir": "dist"
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]

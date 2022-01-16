@@ -560,4 +560,6 @@ class ApiModule {
   [index: string]: ApiModule | Function
 }
 
-export { ApiModule, ApiModuleOptions }
+export default ApiModule
+
+export { ApiModuleOptions }

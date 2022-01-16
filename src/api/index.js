@@ -1,17 +1,22 @@
-import { ApiModule } from '../lib/axios-api'
+import ApiModule from '../lib/axios-api'
+
+// import ApiModule from '../../dist/axios-api'
+
+// import ApiModule from '@no-996/axios-api'
 
 import options from './options'
 
-console.log(JSON.stringify(options, null, 2))
-
 export default new ApiModule(
+  // 接口定义
   options,
+  // axios配置
   {
     baseURL: 'https://jsonplaceholder.typicode.com',
     onUploadProgress: (progressEvent, percentCompleted) => {
       console.log(percentCompleted)
     },
   },
+  // axios-api配置
   {
     cacheStorage: localStorage,
     debug: true,
