@@ -1,4 +1,4 @@
-import ApiModule from '../lib/axios-api'
+import ApiModule from '../lib'
 
 // import ApiModule from '../../dist'
 
