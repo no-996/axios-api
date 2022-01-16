@@ -1,6 +1,6 @@
-// import ApiModule from '../lib/axios-api'
+import ApiModule from '../lib/axios-api'
 
-import ApiModule from '../../dist'
+// import ApiModule from '../../dist'
 
 // import ApiModule from '@no-996/axios-api'
 

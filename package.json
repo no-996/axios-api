@@ -1,6 +1,6 @@
 {
   "name": "@no-996/axios-api",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Api request structured tool builder.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
