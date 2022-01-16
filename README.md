@@ -18,6 +18,7 @@
 - [接口定义配置说明](#接口定义配置说明)
 - [axios-api配置说明](#axios-api配置说明)
 - [依赖说明](#依赖说明)
+- [版本日志](#版本日志)
 
 ## 安装使用
 
@@ -297,3 +298,9 @@ interface CacheStorage {
   "uuid": "8.3.2"
 }
 ```
+
+## 版本日志
+
+### v1.0.0
+
+First release version.
