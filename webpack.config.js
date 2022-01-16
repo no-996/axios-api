@@ -180,7 +180,7 @@ if (['production', 'analyzer'].includes(process.env.NODE_ENV)) {
   // module.exports.devtool = '#source-map'
 
   let entry = {
-    ['axios-api']: './src/lib/axios-api.ts',
+    index: './src/lib/index.ts',
   }
 
   module.exports.entry = entry

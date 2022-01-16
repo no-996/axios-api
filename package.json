@@ -2,8 +2,8 @@
   "name": "@no-996/axios-api",
   "version": "0.0.1",
   "description": "Api request structured tool builder.",
-  "main": "dist/axios-api.js",
-  "types": "dist/axios-api.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "dev": "node dev.js",
     "build": "cross-env NODE_ENV=production webpack --progress --hide-modules",
