@@ -10,17 +10,57 @@
 
 ## 目录
 
+- [安装使用](#安装使用)
 - [结构化的api定义](#结构化的api定义)
 - [结构化的api请求实例](#结构化的api请求实例)
 - [请求中止cancel](#请求中止cancel)
 - [缓存cache](#缓存cache)
-- [api配置说明](#api配置说明)
+- [接口定义配置说明](#接口定义配置说明)
 - [axios-api配置说明](#axios-api配置说明)
 - [依赖说明](#依赖说明)
+
+## 安装使用
+
+```bash
+npm install --save @no-996/axios-api
+```
+
+```js
+// src/api/index.js
+import ApiModule from '@no-996/axios-api'
+import options from './options'
+
+export default new ApiModule(
+  // 接口定义
+  options,
+  // axios配置
+  {
+    baseURL: 'https://jsonplaceholder.typicode.com',
+    onUploadProgress: (progressEvent, percentCompleted) => {
+      console.log(percentCompleted)
+    },
+  },
+  // axios-api配置
+  {
+    cacheStorage: localStorage,
+    debug: true,
+  }
+)
+```
+
+```js
+import instance from './api'
+// 即可根据结构化的实例进行调用，如：
+// instance.module001.request()
+// instance.module001.sub.request()
+// instance.module002.request()
+// ...
+```
 
 ## 结构化的api定义
 
 ```js
+// src/api/options/index.js
 export default [
   {
     name: 'posts',
@@ -72,6 +112,7 @@ export default [
     des: '相片',
     params: {},
     children: [],
+    cache: 3000,
   },
   {
     name: 'todos',
@@ -79,6 +120,7 @@ export default [
     des: '待办事项',
     params: {},
     children: [],
+    cancel:'current'
   },
   {
     name: 'users',
@@ -86,9 +128,9 @@ export default [
     des: '用户',
     params: {},
     children: [],
+    cancel:'previous'
   },
 ]
-
 ```
 
 ## 结构化的api请求实例
@@ -122,6 +164,32 @@ export default [
 ![image](https://user-images.githubusercontent.com/16830398/149626649-3fbd9872-70c9-4671-92ec-6821143ba583.png)
 ![image](https://user-images.githubusercontent.com/16830398/149626620-1c5edfb5-2c63-4a05-81cc-a607e265bc17.png)
 
+#### 关于上述示例
+
+示例使用Vue，并把请求实例挂载至Vue.prototype上：
+
+```js
+// src/App.vue
+import Vue from 'vue'
+import instance from './api'
+// ...
+Vue.prototype.$api = instance
+// ...
+```
+
+> 注意，示例中如此挂载到Vue.prototype，需要补充针对Vue.prototype声明，如下：
+
+```ts
+// src/index.d.ts
+import Vue from 'vue'
+import api from '@/api/index'
+declare module 'vue/types/vue' {
+  interface Vue {
+    $api: typeof api
+  }
+}
+```
+
 ## 请求中止cancel
 
 ### cancel: 'current'
@@ -144,7 +212,7 @@ export default [
 
 ![image](https://user-images.githubusercontent.com/16830398/149627530-189f94ff-c0bf-43a9-91e3-8e72e483e457.png)
 
-## api配置说明
+## 接口定义配置说明
 
 |配置|类型|必填|默认值|说明|
 | :-: | :-: | :-: | :-: | --- |
@@ -220,12 +288,12 @@ interface CacheStorage {
 
 ```json
 "dependencies": {
-    "@types/md5": "^2.3.1",
-    "@types/qs": "6.9.7",
-    "@types/uuid": "^8.3.4",
-    "axios": "0.24.0",
-    "md5": "^2.3.0",
-    "qs": "6.7.0",
-    "uuid": "^8.3.2"
+  "@types/md5": "2.3.1",
+  "@types/qs": "6.9.7",
+  "@types/uuid": "8.3.4",
+  "axios": "0.24.0",
+  "md5": "2.3.0",
+  "qs": "6.7.0",
+  "uuid": "8.3.2"
 }
 ```
