@@ -306,3 +306,7 @@ interface CacheStorage {
 ### v1.0.0
 
 First release version.
+
+### v1.0.1
+
+Update publish files.
