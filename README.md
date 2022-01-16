@@ -8,6 +8,8 @@
 4. 内置了接口地址模板插入功能，满足基于 url 包含变量值的场景。
 5. 关键：通过结构化的 api 定义生成结构化的 api 请求实例，在项目中畅快的快速调用业务接口。配套使用 webpack 插件（[@no-996/axios-api-webpack-plugin](https://www.npmjs.com/package/@no-996/axios-api-webpack-plugin)），可以自动生成 d.ts 声明文件，在 IDE 中可以获得 api 定义的提醒信息。
 
+**第一次生成d.ts文件后，vscode可能需要重启才能显示请求示例的调用提示！**
+
 ## 目录
 
 - [安装使用](#安装使用)
