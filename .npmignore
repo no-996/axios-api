@@ -1,6 +1,10 @@
 .vscode
 node_modules
+src
+.eslintignore
+.eslintrc.js
 .gitignore
 .npmignore
-.editorconfig
-test
+babel.config.js
+tsconfig.json
+webpack.config.js
