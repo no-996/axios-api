@@ -6,7 +6,7 @@ import ApiModule from '../lib'
 
 import options from './options'
 
-export default new ApiModule(
+const instance = new ApiModule(
   // 接口定义
   options,
   // axios配置
@@ -20,5 +20,28 @@ export default new ApiModule(
   {
     cacheStorage: localStorage,
     debug: true,
+    // 全局拦截器
+    interceptors: {
+      request: {
+        onFulfilled: (config) => {
+          debugger
+          return config
+        },
+        onRejected: (error) => {
+          return Promise.reject(error)
+        },
+      },
+      response: {
+        onFulfilled: (response) => {
+          debugger
+          return response.data
+        },
+        onRejected: (error) => {
+          return Promise.reject(error)
+        },
+      },
+    },
   }
 )
+
+export default instance
