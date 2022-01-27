@@ -23,7 +23,10 @@
     computed: {},
     watch: {},
     created() {},
-    mounted() {},
+    mounted() {
+      // this.$api.posts.request
+      // this.$api.posts.comments.request
+    },
     beforeDestroy() {},
     methods: {
       async cancelCurrent() {
