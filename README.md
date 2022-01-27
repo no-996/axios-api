@@ -183,8 +183,9 @@ Vue.prototype.$api = instance
 
 > 注意，示例中如此挂载到Vue.prototype，需要补充针对Vue.prototype声明，参考如下：
 
+##### tsconfig.json
+
 ```json
-// tsconfig.json
 {
   "compilerOptions": {
     "baseUrl": ".",
@@ -198,8 +199,9 @@ Vue.prototype.$api = instance
 }
 ```
 
+##### src/@types/vue.d.ts
+
 ```ts
-// src/@types/vue.d.ts
 import Vue from 'vue'
 import api from '@/api/index'
 declare module 'vue/types/vue' {
