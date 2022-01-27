@@ -320,6 +320,10 @@ interceptors?: {
 
 ## 版本日志
 
+### v1.0.4
+
+Enable options assign.
+
 ### v1.0.3
 
 Add global and instance interceptors setting.
