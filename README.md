@@ -184,6 +184,7 @@ Vue.prototype.$api = instance
 > 注意，示例中如此挂载到Vue.prototype，需要补充针对Vue.prototype声明，参考如下：
 
 ```json
+// tsconfig.json
 {
   "compilerOptions": {
     "baseUrl": ".",
