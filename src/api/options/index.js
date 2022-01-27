@@ -57,7 +57,28 @@ export default [
     des: '待办事项',
     params: {},
     children: [],
-    cancel:'current'
+    cancel:'current',
+    // 局部拦截器
+    interceptors: {
+      request: {
+        onFulfilled: (config) => {
+          debugger
+          return config
+        },
+        onRejected: (error) => {
+          return Promise.reject(error)
+        },
+      },
+      response: {
+        onFulfilled: (response) => {
+          debugger
+          return response.data
+        },
+        onRejected: (error) => {
+          return Promise.reject(error)
+        },
+      },
+    },
   },
   {
     name: 'users',
