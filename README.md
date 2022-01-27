@@ -19,6 +19,7 @@
 - [缓存cache](#缓存cache)
 - [接口定义配置说明](#接口定义配置说明)
 - [axios-api配置说明](#axios-api配置说明)
+- [拦截器](#拦截器)
 - [依赖说明](#依赖说明)
 - [版本日志](#版本日志)
 
@@ -180,10 +181,27 @@ Vue.prototype.$api = instance
 // ...
 ```
 
-> 注意，示例中如此挂载到Vue.prototype，需要补充针对Vue.prototype声明，如下：
+> 注意，示例中如此挂载到Vue.prototype，需要补充针对Vue.prototype声明，参考如下：
+
+##### tsconfig.json
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "declaration": true,
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+```
+
+##### src/@types/vue.d.ts
 
 ```ts
-// src/index.d.ts
 import Vue from 'vue'
 import api from '@/api/index'
 declare module 'vue/types/vue' {
