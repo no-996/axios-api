@@ -106,3 +106,5 @@ dist
 src/api/index.d.ts
 
 src/api/config/package.json
+
+cover.js

@@ -184,6 +184,8 @@ interface ApiModuleOptions extends Omit<AxiosRequestConfig, 'baseURL' | 'onUploa
    * / Params for url replace
    */
   urlParams?: ApiURLParams
+  //
+  [index: string]: any
 }
 
 interface ParamsSerializer {
@@ -284,9 +286,18 @@ class ApiModule {
     let optionsMix = {
       // 配置时参数
       ...this[OptionsSymbol],
-      // 运行时参数
-      ...options,
     }
+    // 运行时参数
+    Object.keys(options).forEach(o=>{
+      if(typeof options[o] === 'object' && typeof optionsMix[o] === 'object'){
+        optionsMix[o] = {
+          ...optionsMix[o],
+          ...options[o]
+        }
+      }else{
+        optionsMix[o] = options[o]
+      }
+    })
 
     // URL转换
     optionsMix.url = this.parseURL(optionsMix)
