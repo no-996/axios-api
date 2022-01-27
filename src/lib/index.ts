@@ -214,12 +214,11 @@ class ApiModule {
   /**
    * 缓存记录 / Cache records
    */
-  readonly [CacheRecordsSymbol]: Array<CacheRecord>;
+  readonly [CacheRecordsSymbol]: Array<CacheRecord>
   /**
    * Axios 实例 / Axios instance
    */
-  readonly [AxiosInstanceSymbol]: AxiosInstance
-
+  readonly axiosInstance: AxiosInstance
   /**
    * 参数处理方法 / paramsSerializer
    * @param params
@@ -327,27 +326,28 @@ class ApiModule {
           resolve(cacheRecord.data)
         } else {
           // 请求
-          this[AxiosInstanceSymbol].request({
-            ...optionsMix,
-            cancelToken: optionsMix.cancel ? source.token : optionsMix.cancelToken,
-            // 增加百分比输出（2位小数）
-            onUploadProgress: (progressEvent) => {
-              let percentCompleted = 0
-              try {
-                // 计算百分比
-                percentCompleted = Math.round(((progressEvent.loaded * 100) / progressEvent.total) * 100) / 100
-              } catch (e) {
-                console.error(e)
-              }
-              try {
-                if (optionsMix.onUploadProgress) {
-                  optionsMix.onUploadProgress(progressEvent, percentCompleted)
+          this.axiosInstance
+            .request({
+              ...optionsMix,
+              cancelToken: optionsMix.cancel ? source.token : optionsMix.cancelToken,
+              // 增加百分比输出（2位小数）
+              onUploadProgress: (progressEvent) => {
+                let percentCompleted = 0
+                try {
+                  // 计算百分比
+                  percentCompleted = Math.round(((progressEvent.loaded * 100) / progressEvent.total) * 100) / 100
+                } catch (e) {
+                  console.error(e)
                 }
-              } catch (e) {
-                console.error(e)
-              }
-            },
-          } as AxiosRequestConfig)
+                try {
+                  if (optionsMix.onUploadProgress) {
+                    optionsMix.onUploadProgress(progressEvent, percentCompleted)
+                  }
+                } catch (e) {
+                  console.error(e)
+                }
+              },
+            } as AxiosRequestConfig)
             .then((res) => {
               if (optionsMix.cancel) {
                 let index = this[CancelRecordsSymbol].findIndex((o) => o.id === id)
@@ -555,7 +555,7 @@ class ApiModule {
       }
     }
     // Axios实例
-    this[AxiosInstanceSymbol] = axios.create(config)
+    this.axiosInstance = axios.create(config)
   }
   [index: string]: ApiModule | Function
 }
