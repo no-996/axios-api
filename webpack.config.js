@@ -190,7 +190,7 @@ if (['production', 'analyzer'].includes(process.env.NODE_ENV)) {
   module.exports.output.libraryTarget = 'umd'
   module.exports.output.umdNamedDefine = true
   module.exports.output.globalObject = 'this'
-  // module.exports.devtool = 'source-map'
+  module.exports.devtool = 'source-map'
   module.exports.plugins = (module.exports.plugins || []).concat([
     new webpack.DefinePlugin({
       'process.env': {
@@ -205,26 +205,25 @@ if (['production', 'analyzer'].includes(process.env.NODE_ENV)) {
     }),
   ])
   module.exports.optimization.minimize = true
-  ;(module.exports.optimization.minimizer = [
+  module.exports.optimization.minimizer = [
     new TerserPlugin({
       extractComments: false,
       terserOptions: {
-        cache: false,
         compress: {
           drop_debugger: true,
           drop_console: true,
         },
       },
     }),
-  ]),
-    (module.exports.externals = {
-      vue: {
-        root: 'Vue',
-        commonjs: 'vue',
-        commonjs2: 'vue',
-        amd: 'vue',
-      },
-    })
+  ]
+  module.exports.externals = {
+    vue: {
+      root: 'Vue',
+      commonjs: 'vue',
+      commonjs2: 'vue',
+      amd: 'vue',
+    },
+  }
 }
 
 if (process.env.NODE_ENV === 'analyzer') {
