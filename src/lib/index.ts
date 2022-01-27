@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, CancelTokenSource } from 'axios'
+import axios, { AxiosInstance, AxiosRequestConfig, CancelTokenSource, AxiosResponse } from 'axios'
 import md5 from 'md5'
 import { v4 as uuid } from 'uuid'
 import Qs from 'qs'
@@ -18,6 +18,20 @@ interface ApiModuleConfig {
    * / show debug console
    */
   debug?: boolean
+  /**
+   * 全局拦截器
+   * / axios interceptors(global)
+   */
+  interceptors?: {
+    request?: {
+      onFulfilled?: (value: AxiosRequestConfig) => AxiosRequestConfig | Promise<AxiosRequestConfig>
+      onRejected?: (error: any) => any
+    }
+    response?: {
+      onFulfilled?: (value: AxiosResponse) => AxiosResponse | Promise<AxiosResponse>
+      onRejected?: (error: any) => any
+    }
+  }
   // TODO: 统一输出调试信息方法
 }
 
@@ -110,6 +124,20 @@ interface ApiModuleOptions extends Omit<AxiosRequestConfig, 'baseURL' | 'onUploa
    * 扩展返回百分比
    */
   onUploadProgress?: (progressEvent: any, percentCompleted: number) => void
+  /**
+   * 实例拦截器
+   * / axios interceptors(instance)
+   */
+  interceptors?: {
+    request?: {
+      onFulfilled?: (value: AxiosRequestConfig) => AxiosRequestConfig | Promise<AxiosRequestConfig>
+      onRejected?: (error: any) => any
+    }
+    response?: {
+      onFulfilled?: (value: AxiosResponse) => AxiosResponse | Promise<AxiosResponse>
+      onRejected?: (error: any) => any
+    }
+  }
   //
   /**
    * 接口名
@@ -164,7 +192,6 @@ interface ParamsSerializer {
 
 const OptionsSymbol = Symbol('options')
 const ConfigSymbol = Symbol('config')
-const AxiosInstanceSymbol = Symbol('axiosInstance')
 const OptionsPathSymbol = Symbol('optionsPath')
 const CancelKeySymbol = Symbol('cancelKey')
 const CancelRecordsSymbol = Symbol('cancelRecords')
@@ -556,6 +583,25 @@ class ApiModule {
     }
     // Axios实例
     this.axiosInstance = axios.create(config)
+    // 全局拦截器
+    if (apiModuleConfig) {
+      let interceptors = apiModuleConfig.interceptors
+      if (info && info.option && info.option.interceptors) {
+        interceptors = info.option.interceptors
+      }
+      if (interceptors) {
+        if (interceptors.request) {
+          const onFulfilled = interceptors.request.onFulfilled || ((value: AxiosRequestConfig) => {})
+          const onRejected = interceptors.request.onRejected || ((error: any) => {})
+          this.axiosInstance.interceptors.request.use(onFulfilled, onRejected)
+        }
+        if (interceptors.response) {
+          const onFulfilled = interceptors.response.onFulfilled || ((value: AxiosResponse) => {})
+          const onRejected = interceptors.response.onRejected || ((error: any) => {})
+          this.axiosInstance.interceptors.response.use(onFulfilled, onRejected)
+        }
+      }
+    }
   }
   [index: string]: ApiModule | Function
 }
