@@ -4,6 +4,20 @@ import { v4 as uuid } from 'uuid'
 import Qs from 'qs'
 
 /**
+ * 避免调用someModule.request()出现语法错误Function不存在request
+ * / Avoid Function dosen`t has request fuction when use someModule.request()
+ */
+declare global {
+  interface Function {
+    /**
+     * 请求方法 / Request function
+     * @returns
+     */
+    request(options: ApiModuleOptions): Promise<any>
+  }
+}
+
+/**
  * Api配置
  * / Api config
  */
@@ -143,7 +157,7 @@ interface ApiModuleOptions extends Omit<AxiosRequestConfig, 'baseURL' | 'onUploa
    * 接口名
    * / Api name
    */
-  name: string
+  name?: string
   /**
    * 接口描述
    * / Api description
@@ -288,13 +302,13 @@ class ApiModule {
       ...this[OptionsSymbol],
     }
     // 运行时参数
-    Object.keys(options).forEach(o=>{
-      if(typeof options[o] === 'object' && typeof optionsMix[o] === 'object'){
+    Object.keys(options).forEach((o) => {
+      if (typeof options[o] === 'object' && typeof optionsMix[o] === 'object') {
         optionsMix[o] = {
           ...optionsMix[o],
-          ...options[o]
+          ...options[o],
         }
-      }else{
+      } else {
         optionsMix[o] = options[o]
       }
     })
@@ -573,23 +587,25 @@ class ApiModule {
       for (let i = 0; i < OptionsCopy.children.length; i++) {
         let opts = OptionsCopy.children[i]
         opts.parent = OptionsCopy
-        if (ReservedField.includes(opts.name)) {
-          // 保留字段校验
-          throw new Error(`ApiModule -> constructor -> options.name can\`t be ${ReservedField.map((o) => `"${o}"`).join('/')}.`)
-        } else if (/^__/.test(opts.name) || /__$/.test(opts.name)) {
-          // 特殊字段校验
-          throw new Error(`ApiModule -> constructor -> options.name is invalid.`)
-        } else if (names.filter((o) => o === opts.name).length > 1) {
-          // 重复命名
-          throw new Error(`ApiModule -> constructor -> options.name of '${opts.name}' is duplicate.`)
-        }
+        if (opts.name) {
+          if (ReservedField.includes(opts.name)) {
+            // 保留字段校验
+            throw new Error(`ApiModule -> constructor -> options.name can\`t be ${ReservedField.map((o) => `"${o}"`).join('/')}.`)
+          } else if (/^__/.test(opts.name) || /__$/.test(opts.name)) {
+            // 特殊字段校验
+            throw new Error(`ApiModule -> constructor -> options.name is invalid.`)
+          } else if (names.filter((o) => o === opts.name).length > 1) {
+            // 重复命名
+            throw new Error(`ApiModule -> constructor -> options.name of '${opts.name}' is duplicate.`)
+          }
 
-        // 接口实例
-        this[opts.name] = new ApiModule(opts.children, config, this[ConfigSymbol], {
-          option: opts,
-          cancelRecords: this[CancelRecordsSymbol],
-          cacheRecords: this[CacheRecordsSymbol],
-        })
+          // 接口实例
+          this[opts.name] = new ApiModule(opts.children, config, this[ConfigSymbol], {
+            option: opts,
+            cancelRecords: this[CancelRecordsSymbol],
+            cacheRecords: this[CacheRecordsSymbol],
+          })
+        }
       }
     }
     // Axios实例
