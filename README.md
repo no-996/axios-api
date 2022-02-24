@@ -338,6 +338,10 @@ interceptors?: {
 
 ## 版本日志
 
+### v1.0.5
+
+Fix some syntax error when use typescript.
+
 ### v1.0.4
 
 Enable options assign.
